@@ -23,9 +23,11 @@ b2.authorize()
 
 app.get('/get-b2-images', async (req, res) => {
     try {
+        const folderName = req.query.folderName || 'default-folder'; 
+
         const fileList = await b2.listFileNames({
             bucketId: '5c5f7f8a5d3f1df99f240c18',
-            startFileName: 'Bowmont Gardens/',
+            startFileName: `${folderName}/`, 
             maxFileCount: 100 
         });
 
