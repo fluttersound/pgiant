@@ -1,47 +1,40 @@
-const express = require('express');
-const B2 = require('backblaze-b2');
-const cors = require('cors'); // Add CORS support
-
-const app = express();
-const port = process.env.PORT || 3000; 
-
-const b2 = new B2({
-    applicationKeyId: process.env.000cffadfd9f4c80000000003, 
-    applicationKey: process.env.K000Awnr4AiqKkvMBv6kFTeBpt+2ujM
-});
-
-app.use(cors()); // Enable CORS
-
-// Authorize at startup 
-b2.authorize()
-    .then(() => {
-        console.log('B2 authorized successfully');
-    })
-    .catch(error => {
-        console.error('Error authorizing B2:', error);
-    });
-
-app.get('/get-b2-images', async (req, res) => {
+async function loadImages(folderName, galleryDivID) {
     try {
-        const folderName = req.query.folderName || 'default-folder'; 
+      const response = await fetch(`https://backblaze-b2.vercel.app/getImages?folder=${folderName}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch images from server');
+      }
+      const imageUrls = await response.json();
 
-        const fileList = await b2.listFileNames({
-            bucketId: '5c5f7f8a5d3f1df99f240c18',
-            startFileName: `${folderName}/`, 
-            maxFileCount: 100 
-        });
+      const galleryContainer = document.getElementById(galleryDivID);
 
-        const imageUrls = fileList.files
-            .filter(file => file.fileName.endsWith('.jpg') || file.fileName.endsWith('.png')) 
-            .map(file => `https://f002.backblazeb2.com/file/PropertyGiant/${file.fileName}`);
 
-        res.json(imageUrls);
+      imageUrls.images.forEach(imageUrl => {
+        const imageDiv = document.createElement('a');
+        imageDiv.classList.add("f-carousel__slide");
+        imageDiv.href = imageUrl.url;
+        imageDiv.setAttribute('data-fancybox', 'gallery');
+        imageDiv.setAttribute('data-thumb-src', imageUrl.url); 
+
+        const img = document.createElement('img');
+        img.src = imageUrl.url;
+        img.alt = 'Gallery Image';
+        img.style = 'width: 100%; height: auto; margin: 5px; object-fit: cover; border-radius: 8px;';
+
+        imageDiv.appendChild(img);
+        galleryContainer.appendChild(imageDiv);
+      });
+
+      
+//      Fancybox.bind("[data-fancybox]", {});
+      new Carousel(document.getElementById(galleryDivID), {
+        Dots: false,
+        Thumbs: {
+          type: "classic",
+        },
+      }, { Thumbs });
+
     } catch (error) {
-        console.error('Error fetching B2 images:', error);
-        res.status(500).send('Internal Server Error');
+      console.error('Error fetching and displaying images:', error);
     }
-});
-
-app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-});
+  }
